@@ -36,7 +36,7 @@ def checksum(data):
         data_len += 1
         data += struct.pack('!B', 0)
     
-    for i in range(0, len(data), 2):
+    for i in range(0, data_len, 2):
         ret += int.from_bytes(data[i:i+2], "big")
         if(i >= 2):
             print("checksum hex addition: {0} + {1}".format('0x' + data[i-2:i].hex(), '0x' + data[i:i+2].hex()))
