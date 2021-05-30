@@ -34,9 +34,16 @@ def checksum(data):
     
     for i in range(0, len(data), 2):
         ret += int.from_bytes(data[i:i+2], "big")
+        if(i >= 2):
+            print("checksum hex addition: {0} + {1}".format('0x' + data[i-2:i].hex(), '0x' + data[i:i+2].hex()))
         
     ret = (ret >> 16) + (ret & 0xFFFF)
+    
+    print('checksum value before flip: {0}'.format(ret & 0xFFFF))
+    print('checksum value after flip: {0}'.format(~ret & 0xFFFF))
+    
     return ~ret & 0xFFFF
+
     
 while(True):
     req_msg = input("enter command: ");
@@ -61,7 +68,14 @@ while(True):
     
     # receive file transfer count
     size_msg, _ = s.recvfrom(4096)
-    count = int(size_msg.decode('utf-8'))
+    
+    my_chksum = checksum(size_msg[:18] + struct.pack('!H', 0) + size_msg[20:])
+    received_chksum = int.from_bytes(size_msg[18:20], 'big')
+    if (my_chksum != received_chksum):
+        print('[Checksum Error] my checksum: {0} received checksum: {1}'.format(my_chksum, received_chksum))
+        sys.exit()
+    
+    count = int(size_msg[20:].decode('utf-8'))
     print("number of receive: {0}".format(count))
     
     # receive file
@@ -73,11 +87,12 @@ while(True):
         
         if (my_chksum == received_chksum):
             f.write(data[20:])
-            print("received packet number {0}".format(init_cnt - count))
+            print("received packet number {0}".format(init_cnt - (count - 1)))
             print('Received checksum: {0}'.format(hex(received_chksum)))
             print('New calculated checksum: {0}'.format(hex(my_chksum)))
         else:
             print('[Checksum Error] my checksum: {0} received checksum: {1}'.format(my_chksum, received_chksum))
+            sys.exit()
         
         print(my_chksum == received_chksum)
         count -= 1
